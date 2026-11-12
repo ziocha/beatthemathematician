@@ -205,6 +205,7 @@ function initGame(){
       S.nick = parsed.nick || "";
       S.tutorialDone = !!parsed.tutorialDone;
       S.logs = parsed.logs || [];
+      S.courtAdj = parsed.courtAdj || {};
     }catch(e){}
   }
   
@@ -221,7 +222,7 @@ function initGame(){
 function saveGame(){
   var data = {
     unlocked: S.unlocked, char: S.char, pts: S.pts, games: S.games, wins: S.wins,
-    progressBase: S.progressBase, hasStrongUnlocked: S.hasStrongUnlocked, hall: S.hall, nick: S.nick, tutorialDone: !!S.tutorialDone, logs: S.logs || []
+    progressBase: S.progressBase, hasStrongUnlocked: S.hasStrongUnlocked, hall: S.hall, nick: S.nick, tutorialDone: !!S.tutorialDone, logs: S.logs || [], courtAdj: S.courtAdj || {}
   };
   localStorage.setItem("math_pingpong_save_v2", JSON.stringify(data));
   updateTopInfo();
@@ -398,7 +399,7 @@ function renderCardHtml(c){
     <div class="head">
       <div class="avatar" data-person="${c.nm}">${c.nm.charAt(0)}</div>
       <div style="flex:1">
-        <div class="side ${isLegend?'gold':(isWeak(c)?'weak':'strong')}">${isLegend?'LEGENDARY':(isWeak(c)?'주사위파':'방정식파')} · ${c.title}</div>
+        <div class="side ${isLegend?'gold':(isWeak(c)?'weak':'strong')}">${isLegend?'LEGENDARY':(isWeak(c)?'주사위파':'방정식파')} | ${c.title}</div>
         <div class="nm">${c.nm}</div>
       </div>
       ${isUnlocked ? 
@@ -505,11 +506,12 @@ function triggerRandomUnlock(){
 
 /* ================= 5-1. 튜토리얼 ================= */
 var TUTORIAL=[
-  {t:"수학자들의 배드민턴 리그",b:'<p>연구소 리그의 선수는 모두 수학자다. <b>주사위파</b>(확률·통계)는 계산은 빠르지만 코트에선 서툴고, <b>방정식파</b>(미적분·역학)는 리그의 강자다.</p><p>당신은 주사위파 선수로 시작한다. 경기를 해서 포인트를 모으면 가챠로 새 수학자를 해금하고, 18명을 모두 모으면 히든 레전더리가 열린다.</p>'},
-  {t:"경기 한 판의 순서",b:'<ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px"><li><b>상대 고르기</b>: 상대의 능력치, 주특기, 약점, 스킬이 모두 공개된다. 내가 공략할 수 있는 상대를 고른다.</li><li><b>승률 짐작</b>: 이 경기를 이길 확률을 직감으로 정한다.</li><li><b>컴퓨터 예측</b>: 기준 봇이 같은 코트에서 4,000랠리를 쳐서 구한 랠리 승률을, 마르코프 체인으로 게임 승률로 바꿔 보여 준다.</li><li><b>직접 경기</b>: 컴퓨터 예측보다 잘 치는지 확인한다.</li></ol>'},
-  {t:"조작법",b:'<svg viewBox="0 0 300 120" width="100%" style="max-width:360px" role="img" aria-label="타이밍 링이 착지 원으로 줄어드는 그림"><rect x="0" y="0" width="300" height="120" rx="8" fill="#173A2B"></rect><circle cx="80" cy="60" r="22" fill="none" stroke="#EEF3EF" stroke-dasharray="4 4"></circle><circle cx="80" cy="60" r="44" fill="none" stroke="#FFB547" stroke-width="3"></circle><text x="80" y="112" fill="#A3B5AB" font-size="12" text-anchor="middle">아직 이르다</text><circle cx="220" cy="60" r="22" fill="none" stroke="#EEF3EF" stroke-dasharray="4 4"></circle><circle cx="220" cy="60" r="23" fill="none" stroke="#3FA877" stroke-width="3"></circle><circle cx="220" cy="60" r="10" fill="#FFB547"></circle><text x="220" y="112" fill="#A3B5AB" font-size="12" text-anchor="middle">지금 치기!</text></svg><ul style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px"><li><b>이동</b>: 마우스(휴대폰은 터치)를 내 코트(아래쪽) 위에서 움직이면 선수가 그쪽으로 달려간다.</li><li><b>치기</b>: 셔틀콕이 떨어질 점선 원에 들어간 뒤, 노란 링이 줄어들어 원과 겹치는 순간 <b>Space</b> 또는 <b>치기</b> 버튼. 판정은 완벽 · 좋음 · 늦음.</li><li><b>조준</b>: 상대 코트(위쪽)를 클릭하면 보낼 곳이 바뀐다. 라인에 너무 붙이면 아웃될 수 있다.</li></ul>'},
-  {t:"상대 읽기와 변수",b:'<ul style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px"><li>코트 위의 <b style="color:#F0795B">빨간 띠</b>는 상대의 약점 구역이다. 그쪽으로 보내면 상대가 받기 어려워한다.</li><li>셔틀콕 속도는 타구마다 <b>0.8 · 1 · 1.5 · 2 · 2.5배</b> 중 무작위로 바뀐다. 빨간 셔틀은 2배 이상이다.</li><li>서브 미스와 네트 터치가 가끔 생긴다. 주사위파는 방정식파보다 실수가 잦다.</li><li>스킬은 경기당 한 번. 수학자의 업적에서 따온 효과다.</li></ul>'},
-  {t:"이 게임이 보여 주는 것",b:'<p>랠리 하나를 이길 확률이 조금만 낮아도, 11점을 먼저 내는 게임에서는 이길 확률이 크게 떨어진다. 예를 들어 랠리 승률 0.45면 게임 승률은 약 31%, 0.40이면 약 16%다. 21점이면 각각 25%, 9%로 더 벌어진다. 이게 점수체계의 <b>증폭</b>이다.</p><p>경기 전에 짐작한 승률, 직접 친 랠리의 승률, 경기 결과는 <b>배드민턴 점수체계 탐구</b>의 자료로 쓰인다. 사람들이 증폭을 얼마나 직감하는지, 사람의 플레이가 기준 봇과 얼마나 다른지 확인하는 데 쓴다.</p>'}
+  {t:"수학자들의 배드민턴 리그",b:'<p>연구소 리그의 선수는 모두 수학자다. <b>주사위파</b>(확률, 통계)는 계산은 빠르지만 코트에선 서툴고, <b>방정식파</b>(미적분, 역학)는 리그의 강자다.</p><p>당신은 주사위파 선수로 시작한다. 경기를 해서 포인트를 모으면 가챠로 새 수학자를 해금하고, 18명을 모두 모으면 히든 레전더리가 열린다.</p>'},
+  {t:"경기 한 판의 순서",b:'<ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px"><li><b>상대 고르기</b>: 상대의 능력치, 주특기, 약점, 스킬이 모두 공개된다. 내가 공략할 수 있는 상대를 고른다.</li><li><b>승률 짐작</b>: 이 경기를 이길 확률을 직감으로 정한다.</li><li><b>컴퓨터 예측</b>: 기준 봇이 이번 경기 코트에서 4,000랠리를 쳐서 구한 랠리 승률을, 마르코프 체인으로 게임 승률로 바꿔 보여 준다.</li><li><b>직접 경기</b>: 컴퓨터 예측보다 잘 치는지 확인한다.</li></ol>'},
+  {t:"조작법",b:'<svg viewBox="0 0 300 120" width="100%" style="max-width:360px" role="img" aria-label="타이밍 링이 착지 원으로 줄어드는 그림"><rect x="0" y="0" width="300" height="120" rx="8" fill="#173A2B"></rect><circle cx="80" cy="60" r="22" fill="none" stroke="#EEF3EF" stroke-dasharray="4 4"></circle><circle cx="80" cy="60" r="44" fill="none" stroke="#FFB547" stroke-width="3"></circle><text x="80" y="112" fill="#A3B5AB" font-size="12" text-anchor="middle">아직 이르다</text><circle cx="220" cy="60" r="22" fill="none" stroke="#EEF3EF" stroke-dasharray="4 4"></circle><circle cx="220" cy="60" r="23" fill="none" stroke="#3FA877" stroke-width="3"></circle><circle cx="220" cy="60" r="10" fill="#FFB547"></circle><text x="220" y="112" fill="#A3B5AB" font-size="12" text-anchor="middle">지금 치기!</text></svg><ul style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px"><li><b>이동</b>: 마우스(휴대폰은 터치)를 내 코트(아래쪽) 위에서 움직이면 선수가 그쪽으로 달려간다.</li><li><b>치기</b>: 셔틀콕이 떨어질 점선 원에 들어간 뒤, 노란 링이 줄어들어 원과 겹치는 순간 <b>Space</b> 또는 <b>치기</b> 버튼. 판정은 완벽 | 좋음 | 늦음.</li><li><b>조준</b>: 상대 코트(위쪽)를 클릭하면 보낼 곳이 바뀐다. 라인에 너무 붙이면 아웃될 수 있다.</li></ul>'},
+  {t:"상대 읽기와 변수",b:'<ul style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px"><li>코트 위의 <b style="color:#F0795B">빨간 띠</b>는 상대의 약점 구역이다. 그쪽으로 보내면 상대가 받기 어려워한다.</li><li>셔틀콕 속도는 타구마다 <b>0.8, 1, 1.5, 2, 2.5배</b> 중 무작위로 바뀐다. 빨간 셔틀은 2배 이상이다.</li><li>서브 미스와 네트 터치가 가끔 생긴다. 주사위파는 방정식파보다 실수가 잦다.</li><li>스킬은 경기당 한 번. 수학자의 업적에서 따온 효과다.</li></ul>'},
+  {t:"코트 크기 핸디캡",b:'<p>강한 선수는 셔틀콕을 원하는 곳에 정확히 보내고 빨리 따라간다. 그래서 이 리그는 점수를 더 주는 대신 <b>강한 쪽 코트를 넓힌다</b>. 강한 선수는 더 넓은 곳을 지켜야 하고, 약한 선수의 샷은 라인 안에 떨어지기 쉬워진다.</p><p>넓히는 정도는 컴퓨터가 정한다. 기준 봇이 코트 배율을 바꿔 가며 랠리를 쳐 보고, 랠리 승률이 0.5가 되는 배율을 찾는다. 넓힐 공간이 부족하면(1.2배 초과) 약한 쪽 코트를 함께 줄인다.</p><p>모델이 틀릴 수도 있으므로, 같은 상대와 다시 붙으면 직전 경기 결과로 코트를 고친다. 강한 쪽이 이기면 4% 더 넓히고 약한 쪽이 이기면 4% 좁히며, 방향이 바뀔 때마다 조정 폭을 절반으로 줄인다. 경기의 70%는 이렇게 정한 코트, 30%는 표준 코트로 무작위 배정된다.</p>'},
+  {t:"이 게임이 보여 주는 것",b:'<p>랠리 하나를 이길 확률이 조금만 낮아도, 11점을 먼저 내는 게임에서는 이길 확률이 크게 떨어진다. 예를 들어 랠리 승률 0.45면 게임 승률은 약 31%, 0.40이면 약 16%다. 그래서 코트 핸디캡은 랠리 승률을 0.5에 아주 가깝게 맞춰야 한다.</p><p>경기 전에 짐작한 승률, 직접 친 랠리의 승률, 경기 결과, 공정함과 재미 설문은 <b>코트 크기 핸디캡 탐구</b>의 자료로 쓰인다. 넓힌 코트에서 실제 승률이 50%에 가까운지, 경기가 더 공정하고 재미있게 느껴지는지 확인하는 데 쓴다.</p>'}
 ];
 function renderTutorial(app){
   var i=S.tutStep||0,T=TUTORIAL[i];
@@ -533,7 +535,7 @@ function renderOpp(app){
   var me=getChar(S.char),pool=oppPool();
   app.innerHTML=
   '<div class="panel">'+
-    '<div class="row" style="justify-content:space-between"><div><span class="eyebrow">상대 고르기 · 내 선수 '+me.nm+'</span><h2>누구와 붙을까</h2></div><button id="oppBack">캐릭터 다시 고르기</button></div>'+
+    '<div class="row" style="justify-content:space-between"><div><span class="eyebrow">상대 고르기 | 내 선수 '+me.nm+'</span><h2>누구와 붙을까</h2></div><button id="oppBack">캐릭터 다시 고르기</button></div>'+
     '<p class="muted" style="font-size:13px">상대 정보는 모두 공개된다. 이동 속도, 실수 확률, 약점 구역, 스킬을 보고 내가 공략할 수 있는 상대를 고르자. 승률은 짐작해 본 다음에 공개된다.</p>'+
     '<div class="grid2">'+pool.map(function(o){
       var tips=[];
@@ -543,7 +545,7 @@ function renderOpp(app){
       if(errOf(o)>errOf(me))tips.push("나보다 실수가 잦음");
       var st=Math.round((o.s+1.5)/3.3*100);
       return '<div class="card">'+
-        '<div class="head"><div class="avatar" data-person="'+o.nm+'">'+o.nm.charAt(0)+'</div><div style="flex:1"><div class="side '+(isWeak(o)?'weak':'strong')+'">'+(isWeak(o)?'주사위파':'방정식파')+' · '+o.title+'</div><div class="nm">'+o.nm+'</div></div></div>'+
+        '<div class="head"><div class="avatar" data-person="'+o.nm+'">'+o.nm.charAt(0)+'</div><div style="flex:1"><div class="side '+(isWeak(o)?'weak':'strong')+'">'+(isWeak(o)?'주사위파':'방정식파')+' | '+o.title+'</div><div class="nm">'+o.nm+'</div></div></div>'+
         '<p class="muted" style="font-size:13px">'+o.line+'</p>'+
         '<div><div class="muted" style="font-size:12px">능력치 ('+st+'%)</div><div class="bar '+(isWeak(o)?'':'strong')+'"><i style="width:'+st+'%"></i></div></div>'+
         '<dl class="kv"><dt>이동 속도</dt><dd>'+speedOf(o.s).toFixed(2)+' m/s (나 '+speedOf(me.s).toFixed(2)+')</dd><dt>실수 확률</dt><dd>타구당 '+(errOf(o)*100).toFixed(1)+'% (나 '+(errOf(me)*100).toFixed(1)+'%)</dd><dt>주특기</dt><dd>'+o.good+' ('+(ZONE[o.good]||"-")+')</dd><dt>약점</dt><dd>'+o.bad+' ('+(ZONE[o.bad]||"없음")+' 구역)</dd><dt>체력</dt><dd>'+o.stamina+'</dd><dt>스킬</dt><dd>'+o.skills.map(function(k){return SKILLS[k]?SKILLS[k].nm+' — '+SKILLS[k].desc:k}).join(", ")+'</dd></dl>'+
@@ -556,9 +558,9 @@ function renderOpp(app){
   document.querySelectorAll(".opp-pick").forEach(function(b){b.onclick=function(){S.opp=b.getAttribute("data-id");newCond();S.guess=S.guess==null?50:S.guess;S.screen="guess";render()}});
 }
 
-/* ================= 5-3. 규칙 무작위 배정 → 승률 짐작 → 컴퓨터 예측 =================
-   경기의 70%는 기본 11점, 15%는 21점, 15%는 비대칭 핸디캡(목표점수와 약자 선취점을 함께 조정)으로 무작위 배정한다.
-   사람이 고르지 않고 무작위로 정해야 규칙의 효과를 공정하게 비교할 수 있다. */
+/* ================= 5-3. 코트 무작위 배정 → 승률 짐작 → 컴퓨터 예측 =================
+   경기의 70%는 코트 핸디캡(강한 쪽 코트를 넓혀 랠리 승률을 0.5로 맞춤), 30%는 표준 코트로 무작위 배정한다. 점수는 둘 다 11점, 선취점 없음.
+   사람이 고르지 않고 무작위로 정해야 코트 핸디캡의 효과를 공정하게 비교할 수 있다. */
 var fairCache={};
 function fairRule(p){p=Math.max(p,1-p);var key=p.toFixed(3);if(fairCache[key])return fairCache[key];
   var best=null,bs=1e9;
@@ -572,26 +574,34 @@ function expRallies(q,T,hA,hB){var cap=T+9,E={};
 function newCond(){
   var me=getChar(S.char),opp=getChar(S.opp),q=baseQ(me,opp),r=Math.random();
   var meUnder=q<0.5;
-  if(r<0.70)S.cond={name:"기본",T:TARGET,hUnder:0};
-  else if(r<0.85)S.cond={name:"21점",T:21,hUnder:0};
-  else{var f=fairRule(q);S.cond={name:"비대칭",T:f.T,hUnder:f.h}}
+  if(r<0.30)S.cond={name:"표준코트",T:TARGET,hUnder:0,op:1,me:1};
+  else{var c=courtFor(me,opp),mw=c.q0<0.5,x0=xOf(mw?c.op:c.me,mw?c.me:c.op),a=(S.courtAdj||{})[adjKey(me,opp)],x=a?a.x:x0,sc=scalesOf(x);
+    S.cond={name:"코트핸디캡",T:TARGET,hUnder:0,op:mw?sc.strong:sc.weak,me:mw?sc.weak:sc.strong,x:x,x0:x0,adjN:a?a.n:0,meWeak:mw};
+    if(Math.abs(c.q0-0.5)<0.005){S.cond.op=1;S.cond.me=1}}
   S.cond.meUnder=meUnder;
   S.matchId="m"+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
 }
-function condLabel(c){return c.name==="기본"?"기본 11점":c.name==="21점"?"21점 게임":"비대칭 핸디캡 · "+c.T+"점, 약자 "+c.hUnder+"점 선취"}
+function courtTxt(s){return (STD_W*s).toFixed(2)+" m x "+(STD_L*s).toFixed(2)+" m"}
+function condLabel(c){
+  if(c.name==="코트핸디캡"){if(c.op===1&&c.me===1)return "코트 핸디캡 | 실력이 비슷해 조정 없음, 11점";
+    var part=function(who,s){return who+" 코트 ×"+s.toFixed(3)+" ("+courtTxt(s)+")"},L=[];
+    if(c.op!==1)L.push(part("상대",c.op));if(c.me!==1)L.push(part("내",c.me));return "코트 핸디캡 | "+L.join(", ")+", 11점"}
+  if(c.name==="표준코트")return "표준 코트 | 5.20 m x 6.70 m, 11점";
+  return c.name==="기본"?"기본 11점":c.name==="21점"?"21점 게임":"비대칭 핸디캡 | "+c.T+"점, 약자 "+c.hUnder+"점 선취"}
 function matchPrediction(){
-  var me=getChar(S.char),opp=getChar(S.opp),q=baseQ(me,opp),c=S.cond||{name:"기본",T:TARGET,hUnder:0,meUnder:q<0.5};
+  var me=getChar(S.char),opp=getChar(S.opp),q0=baseQ(me,opp,1,1),c=S.cond||{name:"표준코트",T:TARGET,hUnder:0,op:1,me:1,meUnder:q0<0.5};
+  var q=baseQ(me,opp,c.op||1,c.me||1);
   var hA=(c.meUnder?c.hUnder:0)+(me.skills[0]==="head"?1:0),hB=c.meUnder?0:c.hUnder;
-  return {q:q,T:c.T,hA:hA,hB:hB,win:exactAB(q,c.T,hA,hB),win0:exactAB(q,TARGET,0,0),cond:c};
+  return {q:q,q0:q0,T:c.T,hA:hA,hB:hB,win:exactAB(q,c.T,hA,hB),win0:exactAB(q0,TARGET,0,0),cond:c};
 }
 function renderGuess(app){
   var me=getChar(S.char),opp=getChar(S.opp);
   app.innerHTML=
   '<div class="panel" style="gap:16px">'+
-    '<span class="eyebrow">1단계 · 승률 짐작</span>'+
+    '<span class="eyebrow">1단계 | 승률 짐작</span>'+
     '<h2>'+me.nm+'이(가) '+opp.nm+'을(를) 이길 확률은?</h2>'+
-    '<p style="border-left:3px solid var(--led);padding:8px 12px;background:var(--panel-2);border-radius:0 6px 6px 0;font-size:14px;margin:0">이번 경기 규칙: <b>'+condLabel(S.cond)+'</b> <span class="muted">(경기마다 무작위로 정해진다)</span></p>'+
-    '<p class="muted">두 선수의 정보와 규칙을 떠올리며 직감으로 정해 보자. 컴퓨터 예측과 가까울수록 정확도 점수가 높다.</p>'+
+    '<p style="border-left:3px solid var(--led);padding:8px 12px;background:var(--panel-2);border-radius:0 6px 6px 0;font-size:14px;margin:0">이번 경기 코트: <b>'+condLabel(S.cond)+'</b> <span class="muted">(경기마다 무작위로 정해진다. 표준 코트는 5.20 m x 6.70 m)</span></p>'+
+    '<p class="muted">두 선수의 정보와 코트 크기를 떠올리며 직감으로 정해 보자. 컴퓨터 예측과 가까울수록 정확도 점수가 높다.</p>'+
     '<div class="led" id="gv" style="font-size:56px;text-align:center;line-height:1">'+S.guess+'%</div>'+
     '<input type="range" id="gs" min="0" max="100" step="1" value="'+S.guess+'" aria-label="짐작한 승률" style="width:100%;accent-color:var(--led)">'+
     '<div class="row" style="justify-content:space-between"><span class="muted" style="font-size:13px">0% 절대 못 이김</span><span class="muted" style="font-size:13px">100% 무조건 이김</span></div>'+
@@ -608,14 +618,14 @@ function renderReveal(app){
   var msg=diff>0.1?"실제 계산보다 "+Math.round(diff*100)+"%p 높게 짐작했다. 랠리에서 조금 밀리는 차이가 게임에서는 훨씬 크게 벌어진다.":diff<-0.1?"실제 계산보다 "+Math.round(-diff*100)+"%p 낮게 짐작했다.":"거의 정확하게 짐작했다.";
   app.innerHTML=
   '<div class="panel" style="gap:16px">'+
-    '<span class="eyebrow">2단계 · 컴퓨터 예측</span><h2>짐작 vs 계산</h2>'+
+    '<span class="eyebrow">2단계 | 컴퓨터 예측</span><h2>짐작 vs 계산</h2>'+
     '<div class="grid2">'+
       '<div class="card" style="text-align:center"><div class="muted">내 짐작</div><div class="led" style="font-size:40px">'+Math.round(g*100)+'%</div></div>'+
       '<div class="card" style="text-align:center"><div class="muted">컴퓨터 예측</div><div class="led" style="font-size:40px">'+(P.win*100).toFixed(1)+'%</div></div>'+
     '</div>'+
     '<p style="border-left:3px solid var(--led);padding:8px 12px;background:var(--panel-2);border-radius:0 6px 6px 0;font-size:14px;margin:0">'+msg+' 짐작 정확도 <b class="led">'+acc+'점</b></p>'+
-    '<dl class="kv" style="font-size:14px"><dt>랠리 승률 p</dt><dd>'+P.q.toFixed(3)+' (기준 봇이 '+me.nm+'으로 '+opp.nm+'과 4,000랠리를 쳐서 구한 값)</dd><dt>기본 11점 승률</dt><dd>'+(P.win0*100).toFixed(1)+'% (마르코프 체인 정확해)</dd><dt>이번 규칙 승률</dt><dd>'+(P.win*100).toFixed(1)+'% · '+condLabel(P.cond)+(me.skills[0]==="head"?' + 선취점 제안 1점':'')+'</dd><dt>계산에서 뺀 것</dt><dd>스킬, 체력 저하, 사람의 조작</dd></dl>'+
-    '<div class="row"><button class="primary" id="goPlay">3단계 · 직접 경기</button></div>'+
+    '<dl class="kv" style="font-size:14px"><dt>표준 코트 랠리 승률</dt><dd>'+P.q0.toFixed(3)+' (기준 봇이 '+me.nm+'으로 '+opp.nm+'과 4,000랠리를 쳐서 구한 값)</dd><dt>이번 코트 랠리 승률</dt><dd>'+P.q.toFixed(3)+' ('+condLabel(P.cond)+')</dd>'+(P.cond.adjN?'<dt>경기 후 보정</dt><dd>같은 상대와의 코트 핸디캡 경기 '+P.cond.adjN+'번의 결과로 모델이 정한 코트를 고쳤다.</dd>':'')+'<dt>표준 코트 11점 승률</dt><dd>'+(P.win0*100).toFixed(1)+'% (마르코프 체인 정확해)</dd><dt>이번 코트 11점 승률</dt><dd>'+(P.win*100).toFixed(1)+'%'+(me.skills[0]==="head"?' (선취점 제안 1점 포함)':'')+'</dd><dt>계산에서 뺀 것</dt><dd>스킬, 체력 저하, 사람의 조작</dd></dl>'+
+    '<div class="row"><button class="primary" id="goPlay">3단계 | 직접 경기</button></div>'+
   '</div>';
   document.getElementById("goPlay").onclick=function(){S.screen="play";render()};
 }
@@ -636,18 +646,19 @@ function recordMatch(iWon){
     a:G.a,b:G.b,rallies:G.n,won:iWon,humanRallies:human,humanRate:rate==null?"":+rate.toFixed(4),
     perfect:st.perfect,good:st.good,late:st.late,whiff:st.whiff,missed:st.missed,err:st.err,out:st.out,net:st.net,winners:st.winners,oppErr:st.oppErr,
     serveFault:st.serveFault,netTouch:st.netTouch,accelRallies:st.accelRallies,points:iWon?150:30,seq:G.seq.join(""),
-    headStart:G.me.skills[0]==="head"?1:0,cond:G.cond,hA:G.hA,hB:G.hB,matchId:S.matchId||"",gameIndex:(S.games||0)+1,autoRallies:G.autoRallies,token:G.token||"",durationMs:Date.now()-(G.startedAt||Date.now()),
+    headStart:G.me.skills[0]==="head"?1:0,cond:G.cond,q0:+G.q0.toFixed(4),courtOp:G.courtOp,courtMe:G.courtMe,adjN:S.cond&&S.cond.adjN?S.cond.adjN:0,hA:G.hA,hB:G.hB,matchId:S.matchId||"",gameIndex:(S.games||0)+1,autoRallies:G.autoRallies,token:G.token||"",durationMs:Date.now()-(G.startedAt||Date.now()),
     swings:G.dts.length,dtMean:G.dts.length?+(G.dts.reduce(function(x,y){return x+y},0)/G.dts.length).toFixed(4):"",
     dtSd:G.dts.length>1?+Math.sqrt(G.dts.reduce(function(x,y){var m=G.dts.reduce(function(p,q){return p+q},0)/G.dts.length;return x+(y-m)*(y-m)},0)/(G.dts.length-1)).toFixed(4):""};
   S.logs=(S.logs||[]).concat([rec]).slice(-200);
   S.lastRecord=rec;
   sendRemote(rec);
+  courtAdjust(iWon);
 }
 function surveyHtml(){
   var r=S.lastRecord;if(!r)return "";
   if(r.surveyed)return '<div class="panel"><span class="eyebrow">설문</span><p style="margin:0">답해 줘서 고마워. 탐구 자료로 쓰인다.</p></div>';
   function scale(id,label){return '<div style="display:flex;flex-direction:column;gap:6px"><span>'+label+'</span><div class="row" role="group" aria-label="'+label+'">'+[1,2,3,4,5].map(function(v){return '<button class="sv" data-q="'+id+'" data-v="'+v+'" aria-pressed="'+(S.sv&&S.sv[id]===v)+'"'+(S.sv&&S.sv[id]===v?' style="border-color:var(--led);color:var(--led)"':'')+'>'+v+'</button>'}).join("")+'</div></div>'}
-  return '<div class="panel" style="text-align:left"><span class="eyebrow">경기 설문 · 10초</span>'+
+  return '<div class="panel" style="text-align:left"><span class="eyebrow">경기 설문 | 10초</span>'+
     '<p class="muted" style="margin:0;font-size:13px">1 = 전혀 아니다, 5 = 매우 그렇다</p>'+
     scale("fair","이 경기는 공정했다")+scale("fun","이 경기는 재미있었다")+
     '<div class="row"><button class="primary" id="svSend"'+(S.sv&&S.sv.fair&&S.sv.fun?'':' disabled')+'>제출</button></div></div>';
@@ -669,40 +680,54 @@ function resultDetailHtml(){
   return '<div class="panel" style="text-align:left">'+
     '<span class="eyebrow">경기 분석</span>'+
     '<p style="margin:0">'+cmp+'</p>'+
-    '<dl class="kv" style="font-size:14px"><dt>짐작 · 예측</dt><dd>'+(r.guess===""?"-":Math.round(r.guess*100)+"%")+' · '+(r.predWin*100).toFixed(1)+'% (정확도 '+(r.guessAcc===""?"-":r.guessAcc+"점")+')</dd>'+
-    '<dt>점수</dt><dd>'+r.a+' : '+r.b+' · '+r.rallies+'랠리 (2배 이상 빠른 셔틀 '+r.accelRallies+'번)</dd>'+
-    '<dt>타점</dt><dd>완벽 '+r.perfect+' · 좋음 '+r.good+' · 늦음 '+r.late+' · 헛스윙 '+r.whiff+' · 놓침 '+r.missed+'</dd>'+
-    '<dt>내 샷</dt><dd>위너 '+r.winners+' · 실수 '+r.err+' · 아웃 '+r.out+' · 네트 '+r.net+'</dd>'+
-    '<dt>변수</dt><dd>상대 실수 '+r.oppErr+' · 서브 미스 '+r.serveFault+' · 네트 터치 '+r.netTouch+'</dd></dl>'+
+    '<dl class="kv" style="font-size:14px"><dt>짐작 | 예측</dt><dd>'+(r.guess===""?"-":Math.round(r.guess*100)+"%")+' | '+(r.predWin*100).toFixed(1)+'% (정확도 '+(r.guessAcc===""?"-":r.guessAcc+"점")+')</dd>'+
+    '<dt>점수</dt><dd>'+r.a+' : '+r.b+' | '+r.rallies+'랠리 (2배 이상 빠른 셔틀 '+r.accelRallies+'번)</dd>'+
+    '<dt>타점</dt><dd>완벽 '+r.perfect+' | 좋음 '+r.good+' | 늦음 '+r.late+' | 헛스윙 '+r.whiff+' | 놓침 '+r.missed+'</dd>'+
+    '<dt>내 샷</dt><dd>위너 '+r.winners+' | 실수 '+r.err+' | 아웃 '+r.out+' | 네트 '+r.net+'</dd>'+
+    '<dt>변수</dt><dd>상대 실수 '+r.oppErr+' | 서브 미스 '+r.serveFault+' | 네트 터치 '+r.netTouch+'</dd></dl>'+
   '</div>';
 }
 
 /* ================= 6. 실시간 경기 엔진 (원래 엔진 + 마우스 이동 + 가속 ×2.5) =================
    코트: 폭 5.2m, 길이 13.4m. 상대 y 0~6.7, 나 y 6.7~13.4, 네트 y=6.7.
-   셔틀콕 속도는 타구마다 0.8·1·1.5·2·2.5배 중 무작위로 정해진다. 내 선수의 이동 속도는 기준 봇 계산에도 똑같이 1.6배를 적용한다. */
+   셔틀콕 속도는 타구마다 0.8, 1, 1.5, 2, 2.5배 중 무작위로 정해진다. 내 선수의 이동 속도는 기준 봇 계산에도 똑같이 1.6배를 적용한다. */
 var CW=5.2,CL=13.4,NET=6.7,REACH=0.75,HOME_ME={x:2.6,y:10.3},HOME_OP={x:2.6,y:3.1};
 var SPEEDS=[0.8,1,1.5,2,2.5],TARGET=11,PLAYER_SPEED_MULT=1.6;
-function shotMult(){return SPEEDS[Math.floor(Math.random()*SPEEDS.length)]}
+/* 코트 크기 핸디캡: 상대 코트와 내 코트의 폭과 길이를 각각 배율로 키운다. 네트는 두 코트 사이, 두 코트는 가운데 정렬.
+   모든 조준점과 착지점은 "코트 폭 대비 위치(fx)"와 "네트에서의 깊이 비율(fd)"로 정하므로, 배율이 1이면 원래 엔진과 똑같다. */
+var STD_W=5.2,STD_L=6.7,OPW=5.2,OPL=6.7,MEW=5.2,MEL=6.7,OX0=0,MX0=0,CRT={op:1,me:1};
+function setCourt(sOp,sMe){CRT={op:sOp,me:sMe};OPW=STD_W*sOp;OPL=STD_L*sOp;MEW=STD_W*sMe;MEL=STD_L*sMe;CW=Math.max(OPW,MEW,STD_W);NET=Math.max(OPL,STD_L);CL=NET+Math.max(MEL,STD_L);OX0=(CW-OPW)/2;MX0=(CW-MEW)/2;HOME_OP={x:CW/2,y:NET-OPL*0.537};HOME_ME={x:CW/2,y:NET+MEL*0.537}}
+function opPt(fx,fd){return {x:OX0+OPW*fx,y:NET-OPL*fd}}
+function mePt(fx,fd){return {x:MX0+MEW*fx,y:NET+MEL*fd}}
+function stdMap(p){return p.y<NET?{x:STD_W*(p.x-OX0)/OPW,y:STD_L-STD_L*(NET-p.y)/OPL}:{x:STD_W*(p.x-MX0)/MEW,y:STD_L+STD_L*(p.y-NET)/MEL}}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+var RNG=Math.random;
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function shotMult(){return SPEEDS[Math.floor(RNG()*SPEEDS.length)]}
 function speedOf(s){return 3.7+0.5*s}
 function reactOf(s){return 0.3-0.03*s}
 function errOf(c){return Math.max(0.015,Math.min(0.1,0.07-0.02*(c.s+1.5)))*(c.errMult||1)}
-function rnd(){return Math.random()}
-function gauss(){var u=1-Math.random(),v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function rnd(){return RNG()}
+function gauss(){var u=1-RNG(),v=RNG();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
 function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
 function toward(p,goal,d){var D=dist(p,goal);if(D<=d)return {x:goal.x,y:goal.y};return {x:p.x+(goal.x-p.x)/D*d,y:p.y+(goal.y-p.y)/D*d}}
-function zoneOfOpp(L){return L.y>NET-2.0?"앞쪽":L.y<1.6?"뒤쪽":"가운데"}
+function zoneOfOpp(L){var d=(NET-L.y)/OPL;return d<0.299?"앞쪽":d>0.761?"뒤쪽":"가운데"}
 /* 상대가 나에게 보내는 샷 */
 function aiShot(op,from,mePos,o){
   o=o||{};
-  var w={"클리어":1,"드롭":1,"스매시":from.y<NET-2.5?1:0.3,"헤어핀":from.y>NET-1.8?1.2:0.1};
+  var fromD=(NET-from.y)/OPL;
+  var w={"클리어":1,"드롭":1,"스매시":fromD>0.373?1:0.3,"헤어핀":fromD<0.269?1.2:0.1};
   if(w[op.good]!=null)w[op.good]*=2.2;
   var tot=0,k;for(k in w)tot+=w[k];var t=rnd()*tot,type="클리어";for(k in w){if(t<w[k]){type=k;break}t-=w[k]}
-  var y={"클리어":12.2+rnd()*0.9,"드롭":7.3+rnd()*1.3,"스매시":9.5+rnd()*2.5,"헤어핀":6.95+rnd()*0.6}[type];
+  var fd={"클리어":0.821+rnd()*0.134,"드롭":0.09+rnd()*0.194,"스매시":0.418+rnd()*0.373,"헤어핀":0.037+rnd()*0.09}[type];
   var away=o.precise?true:rnd()<Math.min(0.85,0.55+0.1*(op.s+1.5));
-  var x=away?(mePos.x<CW/2?3.4+rnd()*1.5:0.3+rnd()*1.5):0.4+rnd()*4.4;
+  var mfx=(mePos.x-MX0)/MEW;
+  var fx=away?(mfx<0.5?0.654+rnd()*0.288:0.058+rnd()*0.288):0.077+rnd()*0.846;
   var sig=Math.max(0.12,0.45-0.08*(op.s+1.5));if(o.precise)sig*=0.5;
-  var L={x:Math.max(0.15,Math.min(CW-0.15,x+gauss()*sig*0.5)),y:Math.max(NET+0.2,Math.min(CL-0.15,y+gauss()*sig*0.5))};
-  var tf=Math.max(0.65,{"클리어":1.7,"드롭":1.35,"스매시":0.9,"헤어핀":1.2}[type]*(1-0.05*op.s));
+  var P=mePt(fx,fd);
+  var L={x:clamp(P.x+gauss()*sig*0.5,MX0+0.15,MX0+MEW-0.15),y:clamp(P.y+gauss()*sig*0.5,NET+0.2,NET+MEL-0.15)};
+  /* 코트가 커지면 같은 샷도 더 멀리 날아가므로 비행 시간이 늘어난다 (1m당 0.07초, myShot과 같은 비율) */
+  var tf=Math.max(0.65,{"클리어":1.7,"드롭":1.35,"스매시":0.9,"헤어핀":1.2}[type]*(1-0.05*op.s))+0.07*(dist(from,L)-dist(stdMap(from),stdMap(L)));
   if(o.fast)tf*=0.85;
   tf/=(o.mult||1);
   return {type:type,L:L,tf:tf};
@@ -713,7 +738,7 @@ function myShot(me,mePos,aim,Q,o){
   var sig=Math.max(0.15,0.25+0.6*(1-Q)-0.05*(me.s+1.5));
   if(o.precise)sig*=0.4;
   var L={x:aim.x+gauss()*sig,y:aim.y+gauss()*sig};
-  var out=L.x<0||L.x>CW||L.y<0,net=L.y>NET-0.08;
+  var out=L.x<OX0||L.x>OX0+OPW||L.y<NET-OPL,net=L.y>NET-0.08;
   var tf=Math.max(0.7,Math.min(1.9,0.95+0.07*dist(mePos,L)-0.35*Q));
   if(o.fast)tf=Math.max(0.6,tf-0.2);
   tf/=(o.mult||1);
@@ -728,8 +753,8 @@ function oppCanReach(op,opPos,L,tf,o){
   r+=o.reachAdd||0;
   return dist(opPos,L)<=v*Math.max(0,tf-reactOf(op.s)-(o.reactAdd||0))+r;
 }
-/* 기준 봇: 평균 실력 플레이어가 같은 엔진·같은 가속 규칙으로 칠 때 */
-function botAim(opPos){return {x:opPos.x<CW/2?3.8+rnd():0.4+rnd(),y:rnd()<0.5?0.6+rnd():NET-1.6+rnd()*0.9}}
+/* 기준 봇: 평균 실력 플레이어가 같은 엔진, 같은 가속 규칙으로 칠 때 */
+function botAim(opPos){var fx=(opPos.x-OX0)/OPW;return opPt(fx<0.5?0.731+rnd()*0.192:0.077+rnd()*0.192,rnd()<0.5?0.761+rnd()*0.149:0.104+rnd()*0.134)}
 function botRally(me,op,meServes){
   var mePos={x:HOME_ME.x,y:HOME_ME.y},opPos={x:HOME_OP.x,y:HOME_OP.y},vMe=speedOf(me.s)*PLAYER_SPEED_MULT,vOp=speedOf(op.s),hits=0,inc=null,myTurn=meServes;
   if(!meServes){inc=aiShot(op,opPos,mePos,{mult:shotMult()});hits++}
@@ -746,7 +771,7 @@ function botRally(me,op,meServes){
       opPos={x:sh.L.x,y:sh.L.y};mePos=toward(mePos,HOME_ME,vMe*sh.tf);
       inc=aiShot(op,opPos,mePos,{mult:shotMult()});hits++;
     }else{
-      var sv=myShot(me,mePos,{x:opPos.x<CW/2?3.6:1.6,y:2.0+rnd()*1.5},0.7,{});hits++;
+      var sv=myShot(me,mePos,opPt((opPos.x-OX0)/OPW<0.5?0.692:0.308,0.701-rnd()*0.224),0.7,{});hits++;
       if(sv.out||sv.net)return 0;
       if(!oppCanReach(op,opPos,sv.L,sv.tf))return 1;
       if(rnd()<errOf(op))return 1;
@@ -764,7 +789,42 @@ function exactAB(q,T,hA,hB){
   return f(hA,hB);
 }
 var qCache={};
-function baseQ(me,op){var k=me.id+op.id;if(qCache[k]!=null)return qCache[k];var w=0,N=4000;for(var i=0;i<N;i++)w+=botRally(me,op,i%2===0);return qCache[k]=w/N}
+function baseQ(me,op,sOp,sMe){sOp=sOp||1;sMe=sMe||1;var k=me.id+op.id+"|"+sOp.toFixed(3)+"|"+sMe.toFixed(3);if(qCache[k]!=null)return qCache[k];
+  /* 같은 난수열(시드 고정)로 계산해 코트 배율만의 효과를 비교한다 */
+  var saveC=CRT,saveR=RNG;setCourt(sOp,sMe);RNG=mulberry(20261112);
+  var w=0,N=4000;for(var i=0;i<N;i++)w+=botRally(me,op,i%2===0);
+  RNG=saveR;setCourt(saveC.op,saveC.me);return qCache[k]=w/N}
+/* 코트 크기 핸디캡 계산 (점수는 건드리지 않는다)
+   1단계: 강한 쪽 코트의 폭과 길이를 같은 배율로 키운다 (최대 1.20배, 체육관 여유 공간 한계).
+   2단계: 그래도 부족하면 강한 쪽을 1.20배로 두고 약한 쪽 코트를 줄인다 (최소 0.50배).
+   기준 봇의 랠리 승률이 0.5가 되는 배율을 이분법으로 찾는다. 이것이 모델이 정한 첫 코트다.
+   3단계(경기 후 보정): 같은 상대와 코트 핸디캡 경기를 할 때마다, 강한 쪽이 이기면 핸디캡을 4% 키우고 약한 쪽이 이기면 4% 줄인다.
+   키우고 줄이는 방향이 바뀔 때마다 조정 폭을 절반으로 줄여 최소 1%까지 내린다 (목표 승률 50%와 실제 결과의 차이로 입력을 고치는 피드백 제어). */
+var courtCache={},BIG_MAX=1.2,SMALL_MIN=0.5;
+/* 핸디캡 크기 x 하나로 두 코트 배율을 표현: x ≤ 1.2이면 강한 쪽 x배, x > 1.2이면 강한 쪽 1.2배 + 약한 쪽 1.2/x배 */
+function scalesOf(x){return {strong:Math.min(x,BIG_MAX),weak:x>BIG_MAX?Math.round(BIG_MAX/x*1000)/1000:1}}
+function xOf(sS,sW){return sW<1?BIG_MAX/sW:sS}
+function adjKey(me,op){return me.id+"|"+op.id}
+function courtAdjust(won){
+  var c=S.cond;if(!c||c.name!=="코트핸디캡"||c.x==null)return;
+  S.courtAdj=S.courtAdj||{};var k=adjKey(getChar(S.char),getChar(S.opp)),a=S.courtAdj[k]||{x:c.x,step:0.04,last:0,n:0};
+  var strongWon=c.meWeak?!won:won,d=strongWon?1:-1;
+  if(a.last&&d!==a.last)a.step=Math.max(0.01,a.step/2);
+  a.x=Math.max(1,Math.min(BIG_MAX/SMALL_MIN,d>0?a.x*(1+a.step):a.x/(1+a.step)));a.x=Math.round(a.x*1000)/1000;
+  a.last=d;a.n++;S.courtAdj[k]=a;saveGame()}
+function courtFor(me,op){var k=me.id+op.id;if(courtCache[k])return courtCache[k];
+  var q0=baseQ(me,op,1,1),meWeak=q0<0.5;
+  /* g(강한 쪽 배율, 약한 쪽 배율) = 약한 쪽의 랠리 승률 */
+  function g(sS,sW){var q=meWeak?baseQ(me,op,sS,sW):baseQ(me,op,sW,sS);return meWeak?q:1-q}
+  function solve(f,lo,hi){for(var i=0;i<10;i++){var m=(lo+hi)/2;if(f(m)<0.5)lo=m;else hi=m}return Math.round((lo+hi)/2*200)/200}
+  var sS=1,sW=1;
+  if(Math.abs(q0-0.5)>=0.005){
+    if(g(BIG_MAX,1)>=0.5)sS=solve(function(s){return g(s,1)},1,BIG_MAX);
+    else{sS=BIG_MAX;
+      if(g(BIG_MAX,SMALL_MIN)<0.5)sW=SMALL_MIN;
+      else sW=solve(function(s){return g(BIG_MAX,1-(s-SMALL_MIN))},SMALL_MIN,1),sW=Math.round((1-(sW-SMALL_MIN))*200)/200}}
+  var r=meWeak?{op:sS,me:sW}:{op:sW,me:sS};
+  r.q0=q0;r.q=baseQ(me,op,r.op,r.me);return courtCache[k]=r}
 
 var match=null,animFrame=null,G=null,keysDown={};
 function stopGame(){if(animFrame){cancelAnimationFrame(animFrame);animFrame=null}if(G&&G.pending){clearTimeout(G.pending);G.pending=null}}
@@ -775,8 +835,9 @@ function renderPlay(app){
   stopGame();
   var me=getChar(S.char),opp=getChar(S.opp),sk=me.skills[0];
   var MP=matchPrediction(),q=MP.q,pred=MP.win;
-  G=match={me:me,opp:opp,q:q,pred:pred,T:MP.T,a:MP.hA,b:MP.hB,cond:MP.cond.name,hA:MP.hA,hB:MP.hB,n:0,hits:0,seq:[],servingMe:Math.random()<0.5,
-    mePos:{x:HOME_ME.x,y:HOME_ME.y},target:{x:HOME_ME.x,y:HOME_ME.y},opPos:{x:HOME_OP.x,y:HOME_OP.y},aim:{x:1.2,y:1.2},
+  setCourt(MP.cond.op||1,MP.cond.me||1);
+  G=match={me:me,opp:opp,q:q,q0:MP.q0,courtOp:CRT.op,courtMe:CRT.me,pred:pred,T:MP.T,a:MP.hA,b:MP.hB,cond:MP.cond.name,hA:MP.hA,hB:MP.hB,n:0,hits:0,seq:[],servingMe:Math.random()<0.5,
+    mePos:{x:HOME_ME.x,y:HOME_ME.y},target:{x:HOME_ME.x,y:HOME_ME.y},opPos:{x:HOME_OP.x,y:HOME_OP.y},aim:opPt(0.23,0.82),
     phase:"idle",fly:null,mode:"direct",autoRallies:0,
     used:false,eff:{},oppUsed:false,oppEff:{},sealed:false,
     msg:"",flash:null,swing:null,done:false,pending:null,skillAt:null,
@@ -789,7 +850,7 @@ function renderPlay(app){
       '<div><div class="s" id="myScore">'+G.a+'</div><div style="text-align:center">'+me.nm+'</div></div>'+
       '<div style="text-align:center">'+
         '<div id="rallyCnt" class="led" style="font-size:15px">랠리 0</div>'+
-        '<div class="muted" style="font-size:12px">'+condLabel(MP.cond)+' · 예상 승률 '+(pred*100).toFixed(1)+'%</div>'+
+        '<div class="muted" style="font-size:12px">'+condLabel(MP.cond)+' | 예상 승률 '+(pred*100).toFixed(1)+'%</div>'+
         '<div id="speedTag" class="chip" style="display:none;background:#7F1D1D;color:#FCA5A5">셔틀 ×1</div>'+
       '</div>'+
       '<div><div class="s" id="oppScore">0</div><div style="text-align:center">'+opp.nm+'</div></div>'+
@@ -803,27 +864,28 @@ function renderPlay(app){
         '<button id="skillBtn" style="background:#312E81;border-color:#6366F1"'+(G.used?" disabled":"")+'>'+(sk&&SKILLS[sk]?SKILLS[sk].nm:"스킬")+(sk==="head"?" (적용됨)":" (경기당 1회)")+'</button>'+
         '<p class="muted" style="font-size:12px">'+(sk&&SKILLS[sk]?SKILLS[sk].desc:"")+'</p>'+
         '<div class="muted" style="font-size:12px;line-height:1.7">'+
-          '<b>조작법</b><br>· 마우스(터치)를 내 코트(아래쪽) 위에서 움직이면 선수가 그쪽으로 달려간다.<br>'+
-          '· 셔틀콕이 떨어질 원에 들어가서, 링이 줄어들어 원과 겹치는 순간 <b>Space</b> 또는 <b>치기</b>를 누른다. 정확할수록 완벽·좋음·늦음.<br>'+
-          '· 상대 코트(위쪽)를 클릭하면 보낼 곳(조준점)이 바뀐다.<br>'+
-          '· 빨간 띠는 상대 약점 구역이다.<br>'+
-          '· 셔틀콕 속도는 타구마다 <b>0.8 · 1 · 1.5 · 2 · 2.5배</b> 중 무작위다. 빨간 셔틀은 2배 이상.'+
+          '<b>조작법</b><br>- 마우스(터치)를 내 코트(아래쪽) 위에서 움직이면 선수가 그쪽으로 달려간다.<br>'+
+          '- 셔틀콕이 떨어질 원에 들어가서, 링이 줄어들어 원과 겹치는 순간 <b>Space</b> 또는 <b>치기</b>를 누른다. 정확할수록 완벽, 좋음, 늦음.<br>'+
+          '- 상대 코트(위쪽)를 클릭하면 보낼 곳(조준점)이 바뀐다.<br>'+
+          '- 빨간 띠는 상대 약점 구역이다.<br>'+
+          '- 코트 핸디캡 경기에서는 강한 쪽 코트가 넓어진다. 점선은 표준 코트다.<br>'+
+          '- 셔틀콕 속도는 타구마다 <b>0.8, 1, 1.5, 2, 2.5배</b> 중 무작위다. 빨간 셔틀은 2배 이상.'+
         '</div>'+
       '</div>'+
     '</div>'+
   '</div>';
 
   var cv=document.getElementById("court");
-  /* 코트 비율(5.2 × 13.4m)과 캔버스 비율을 맞춘다 */
+  /* 코트 비율(폭 CW, 길이 CL, 코트 핸디캡이면 커진 쪽 포함)과 캔버스 비율을 맞춘다 */
   var M=16,PX=380,SC=(PX-2*M)/CW;
   cv.width=PX;cv.height=Math.round(CL*SC+2*M);
   cv.style.width="min(100%, calc(78vh * "+(cv.width/cv.height).toFixed(4)+"))";cv.style.height="auto";
   G.cv=cv;G.ctx=cv.getContext("2d");G.SC=SC;G.M=M;
 
   function toCourt(e){var r=cv.getBoundingClientRect();return {x:((e.clientX-r.left)/r.width*cv.width-M)/SC,y:((e.clientY-r.top)/r.height*cv.height-M)/SC}}
-  function moveTo(e){var p=toCourt(e);if(p.y>NET){G.target={x:Math.max(0.1,Math.min(CW-0.1,p.x)),y:Math.max(NET+0.3,Math.min(CL-0.1,p.y))}}}
+  function moveTo(e){var p=toCourt(e);if(p.y>NET){G.target={x:clamp(p.x,MX0+0.1,MX0+MEW-0.1),y:clamp(p.y,NET+0.3,NET+MEL-0.1)}}}
   cv.addEventListener("pointermove",moveTo);
-  cv.addEventListener("pointerdown",function(e){var p=toCourt(e);if(p.y<NET&&p.y>-0.5){G.aim={x:Math.max(-0.3,Math.min(CW+0.3,p.x)),y:Math.max(-0.3,p.y)}}else moveTo(e)});
+  cv.addEventListener("pointerdown",function(e){var p=toCourt(e);if(p.y<NET&&p.y>NET-OPL-0.5){G.aim={x:clamp(p.x,OX0-0.3,OX0+OPW+0.3),y:Math.max(NET-OPL-0.3,p.y)}}else moveTo(e)});
   document.getElementById("hitBtn").addEventListener("pointerdown",function(e){e.preventDefault();swing()});
   document.getElementById("skillBtn").addEventListener("click",usePlayerSkill);
   paintScore();
@@ -888,8 +950,8 @@ function swing(){
 function myHit(Q,isServe){
   if(G.eff.surprise){Q=1}
   if(rnd()<myErr()*(Q<0.5?1.8:1)){G.stat.err++;G.msg=(Q===1?"완벽한 타점이었지만":"타점이 흔들려")+" 네트에 걸렸다. 실점.";point(false);return}
-  var aim=isServe?{x:G.aim.x,y:Math.min(G.aim.y,NET-2.0)}:G.aim;
-  if(G.eff.coord>0)aim={x:G.opPos.x<CW/2?CW-0.5:0.5,y:G.opPos.y<NET/2?NET-1.2:0.6};
+  var aim=isServe?{x:G.aim.x,y:Math.min(G.aim.y,NET-2.0*CRT.op)}:G.aim;
+  if(G.eff.coord>0)aim=opPt((G.opPos.x-OX0)/OPW<0.5?0.904:0.096,(NET-G.opPos.y)/OPL>0.5?0.179:0.910);
   var mm=shotMult();
   var sh=myShot(G.me,G.mePos,aim,Q,{fast:G.eff.smash>0||G.eff.surprise,precise:G.eff.smash>0||G.eff.coord>0||G.eff.surprise,mult:mm});
   G.hits++;
@@ -899,7 +961,7 @@ function myHit(Q,isServe){
   var reach=oppCanReach(G.opp,G.opPos,sh.L,sh.tf,{speed:oppSpeed(),scout:G.eff.scout>0,reactAdd:G.eff.wave>0?0.25:0,reachAdd:(G.eff.surprise?-0.5:0)+(G.oppEff.reach>0?0.2:0)});
   G.eff.surprise=false;
   G.phase="outgoing";G.fly={from:{x:G.mePos.x,y:G.mePos.y},to:sh.L,t0:now(),tf:sh.tf,mine:true,reach:reach,mult:mm,oppFrom:{x:G.opPos.x,y:G.opPos.y}};setAccelTag();
-  G.msg=label+(ZONE[G.opp.bad]===zoneOfOpp(sh.L)?" · 상대 약점 구역!":"");
+  G.msg=label+(ZONE[G.opp.bad]===zoneOfOpp(sh.L)?" | 상대 약점 구역!":"");
 }
 function point(won){
   if(won)G.a++;else G.b++;
@@ -978,7 +1040,7 @@ function gameLoop(){
 }
 function paintScore(){
   var a=document.getElementById("myScore"),b=document.getElementById("oppScore"),r=document.getElementById("rallyCnt");
-  if(a)a.textContent=G.a;if(b)b.textContent=G.b;if(r)r.textContent="랠리 "+G.n+" · 목표 "+G.T;
+  if(a)a.textContent=G.a;if(b)b.textContent=G.b;if(r)r.textContent="랠리 "+G.n+" | 목표 "+G.T;
 }
 function paintMsg(){
   var m=document.getElementById("matchMsg");if(m){var txt=G.flash&&now()<G.flash.until?G.flash.t:G.msg;if(m.textContent!==txt)m.textContent=txt}
@@ -996,13 +1058,18 @@ function drawCourt(){
   var ctx=G.ctx;if(!ctx)return;
   var SC=G.SC,M=G.M,X=function(x){return M+x*SC},Y=function(y){return M+y*SC};
   ctx.clearRect(0,0,G.cv.width,G.cv.height);
-  ctx.fillStyle="#173A2B";ctx.fillRect(X(0),Y(0),CW*SC,CL*SC);
-  /* 상대 약점 구역 */
+  ctx.fillStyle="#0E1915";ctx.fillRect(0,0,G.cv.width,G.cv.height);
+  ctx.fillStyle="#173A2B";ctx.fillRect(X(OX0),Y(NET-OPL),OPW*SC,OPL*SC);ctx.fillRect(X(MX0),Y(NET),MEW*SC,MEL*SC);
+  /* 상대 약점 구역 (네트에서의 깊이 비율로 정한다) */
   var bz=ZONE[G.opp.bad];
-  if(bz){var zy=bz==="앞쪽"?[NET-2.0,NET]:bz==="뒤쪽"?[0,1.6]:[1.6,NET-2.0];ctx.fillStyle=G.eff.scout>0?"rgba(240,121,91,.30)":"rgba(240,121,91,.13)";ctx.fillRect(X(0),Y(zy[0]),CW*SC,(zy[1]-zy[0])*SC)}
-  /* 코트 라인: 바깥선, 단식 사이드라인, 숏 서비스 라인, 복식 롱 서비스 라인, 센터 라인 */
-  ctx.strokeStyle="#EEF3EF";ctx.lineWidth=2;ctx.strokeRect(X(0),Y(0),CW*SC,CL*SC);ctx.lineWidth=1.2;
-  [[0.46,0,0.46,CL],[CW-0.46,0,CW-0.46,CL],[0,NET-1.98,CW,NET-1.98],[0,NET+1.98,CW,NET+1.98],[0,0.76,CW,0.76],[0,CL-0.76,CW,CL-0.76],[CW/2,0,CW/2,NET-1.98],[CW/2,NET+1.98,CW/2,CL]].forEach(function(l){ctx.beginPath();ctx.moveTo(X(l[0]),Y(l[1]));ctx.lineTo(X(l[2]),Y(l[3]));ctx.stroke()});
+  if(bz){var zd=bz==="앞쪽"?[0,0.299]:bz==="뒤쪽"?[0.761,1]:[0.299,0.761];ctx.fillStyle=G.eff.scout>0?"rgba(240,121,91,.30)":"rgba(240,121,91,.13)";ctx.fillRect(X(OX0),Y(NET-OPL*zd[1]),OPW*SC,OPL*(zd[1]-zd[0])*SC)}
+  /* 코트 라인: 바깥선, 단식 사이드라인, 숏 서비스 라인, 복식 롱 서비스 라인, 센터 라인. 각 코트의 배율만큼 함께 늘어난다 */
+  function half(x0,w,yN,dir,L,s){var yB=yN+dir*L,ln=function(a,b,c,d){ctx.beginPath();ctx.moveTo(X(a),Y(b));ctx.lineTo(X(c),Y(d));ctx.stroke()};
+    ctx.strokeStyle="#EEF3EF";ctx.lineWidth=2;ctx.strokeRect(X(x0),Y(Math.min(yN,yB)),w*SC,L*SC);ctx.lineWidth=1.2;
+    ln(x0+0.46*s,yN,x0+0.46*s,yB);ln(x0+w-0.46*s,yN,x0+w-0.46*s,yB);ln(x0,yN+dir*1.98*s,x0+w,yN+dir*1.98*s);ln(x0,yB-dir*0.76*s,x0+w,yB-dir*0.76*s);ln(x0+w/2,yN+dir*1.98*s,x0+w/2,yB);
+    if(Math.abs(s-1)>0.001){ctx.strokeStyle="rgba(255,181,71,.7)";ctx.setLineDash([6,5]);ctx.lineWidth=1.5;var sx=CW/2-STD_W/2;ctx.strokeRect(X(sx),Y(dir<0?yN-STD_L:yN),STD_W*SC,STD_L*SC);ctx.setLineDash([]);
+      ctx.fillStyle="#FFB547";ctx.font="bold 12px 'IBM Plex Sans KR',sans-serif";ctx.textAlign="left";ctx.textBaseline="top";ctx.fillText("코트 ×"+s.toFixed(2)+" (점선: 표준 코트)",X(x0)+4,Y(dir<0?yB:yN)+(dir<0?4:6))}}
+  half(OX0,OPW,NET,-1,OPL,CRT.op);half(MX0,MEW,NET,1,MEL,CRT.me);
   /* 네트 */
   ctx.strokeStyle="#FFB547";ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(X(-0.15),Y(NET));ctx.lineTo(X(CW+0.15),Y(NET));ctx.stroke();
   /* 조준점 */
